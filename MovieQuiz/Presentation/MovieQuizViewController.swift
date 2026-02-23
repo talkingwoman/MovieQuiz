@@ -3,12 +3,12 @@ import UIKit
 final class MovieQuizViewController: UIViewController {
     
     
-    @IBOutlet private var imageView: UIImageView!
-    @IBOutlet private var textLabel: UILabel!
-    @IBOutlet private var counterLabel: UILabel!
+    @IBOutlet private weak var imageView: UIImageView!
+    @IBOutlet private weak var textLabel: UILabel!
+    @IBOutlet private weak var counterLabel: UILabel!
     
-    @IBOutlet private var noButton: UIButton!
-    @IBOutlet private var yesButton: UIButton!
+    @IBOutlet private weak var noButton: UIButton!
+    @IBOutlet private weak var yesButton: UIButton!
     
     
     
@@ -16,7 +16,6 @@ final class MovieQuizViewController: UIViewController {
         
         yesButton.isEnabled = false
         noButton.isEnabled = false
-        //отключаю кнопки на время показа результата
         
         if isCorrect {
             correctAnswers += 1
@@ -34,6 +33,7 @@ final class MovieQuizViewController: UIViewController {
     }
     
     private func showNextQuestionOrResults() {
+        
             imageView.layer.borderWidth = 0
             
             if currentQuestionIndex == questions.count - 1 {
@@ -47,26 +47,15 @@ final class MovieQuizViewController: UIViewController {
                 
                 yesButton.isEnabled = true
                 noButton.isEnabled = true
-                //включаю кнопки после показа результата
             }
         }
     
-    @IBAction func yesButtonClicked(_ sender: UIButton) {
+    @IBAction func answerButtonTapped(_ sender: UIButton) {
+        let givenAnswer = sender == yesButton
         let currentQuestion = questions[currentQuestionIndex]
-        
-        let givenAnswer = true
-        
         showAnswerResult(isCorrect: givenAnswer == currentQuestion.correctAnswer)
     }
     
-    
-    @IBAction func noButtonClicked(_ sender: UIButton) {
-        let currentQuestion = questions[currentQuestionIndex]
-        
-        let givenAnswer = false
-        
-        showAnswerResult(isCorrect: givenAnswer == currentQuestion.correctAnswer)
-    }
     
     private func setupButtonsAppearance() {
         let cornerRadius: CGFloat = 15
@@ -76,6 +65,7 @@ final class MovieQuizViewController: UIViewController {
     }
     
     private let questions: [QuizQuestion] = [
+        
         QuizQuestion(
             image: "The Godfather",
             text: "Рейтинг этого фильма больше чем 6?",
@@ -136,6 +126,7 @@ final class MovieQuizViewController: UIViewController {
                 let firstQuestion = questions[currentQuestionIndex]
                 let viewModel = convert(model: firstQuestion)
                 show(quiz: viewModel)
+        textLabel.font = UIFont(name: "YSDisplay-Bold", size: 23)
     }
     
     private func convert(model: QuizQuestion) -> QuizStepViewModel {
@@ -152,6 +143,18 @@ final class MovieQuizViewController: UIViewController {
         counterLabel.text = step.questionNumber
     }
     
+    private func startNewGame() {
+        currentQuestionIndex = 0
+        correctAnswers = 0
+        
+        yesButton.isEnabled = true
+        noButton.isEnabled = true
+        
+        let firstQuestion = questions[currentQuestionIndex]
+        let viewModel = convert(model: firstQuestion)
+        show(quiz: viewModel)
+    }
+    
     private func showResultsAlert() {
         let result = QuizResultsViewModel(
             title: "Раунд окончен!",
@@ -164,17 +167,11 @@ final class MovieQuizViewController: UIViewController {
             preferredStyle: .alert
         )
         let action = UIAlertAction(title: result.buttonText, style: .default) { _ in
-            self.currentQuestionIndex = 0
-            self.correctAnswers = 0
-            let firstQuestion = self.questions[self.currentQuestionIndex]
-            let viewModel = self.convert(model: firstQuestion)
-            self.show(quiz: viewModel)
+            self.startNewGame()
         }
         alert.addAction(action)
         self.present(alert, animated: true, completion: nil)
     }
-    
-    
     
     struct QuizQuestion {
         let image: String
