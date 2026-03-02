@@ -1,6 +1,6 @@
 import UIKit
 
-final class MovieQuizViewController: UIViewController {
+final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate {
     
     
     @IBOutlet private weak var imageView: UIImageView!
@@ -10,184 +10,132 @@ final class MovieQuizViewController: UIViewController {
     @IBOutlet private weak var noButton: UIButton!
     @IBOutlet private weak var yesButton: UIButton!
     
+    private var currentQuestionIndex = 0
+    private var correctAnswers = 0
+    private let questionsAmount: Int = 10
+    private var questionFactory: QuestionFactoryProtocol = QuestionFactory()
+    private var currentQuestion: QuizQuestion?
+    private var alertPresenter = AlertPresenter()
+    private var statisticService: StatisticServiceProtocol = StatisticService()
     
+    // MARK: - Lifecycle
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        setupButtonsAppearance()
+        textLabel.font = UIFont(name: "YSDisplay-Bold", size: 23)
+        
+        let questionFactory = QuestionFactory()
+                questionFactory.delegate = self
+                self.questionFactory = questionFactory
+                
+                questionFactory.requestNextQuestion()
+    }
     
-    private func showAnswerResult(isCorrect: Bool) {
-        
-        yesButton.isEnabled = false
-        noButton.isEnabled = false
-        
-        if isCorrect {
-            correctAnswers += 1
+    // MARK: - QuestionFactoryDelegate
+    func didReceiveNextQuestion(question: QuizQuestion?) {
+        guard let question = question else { return }
+        currentQuestion = question
+        let viewModel = convert(model: question)
+
+        DispatchQueue.main.async { [weak self] in
+            self?.show(quiz: viewModel)
+            self?.yesButton.isEnabled = true
+            self?.noButton.isEnabled = true
         }
-        imageView.layer.masksToBounds = true
-        imageView.layer.borderWidth = 8
-        imageView.layer.borderColor = isCorrect ? UIColor.ypGreen.cgColor : UIColor.ypRed.cgColor
-        imageView.layer.cornerRadius = 20
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+    }
+    private func showError(message: String) {
             
-            self.showNextQuestionOrResults()
+            let model = AlertModel(
+                title: "Ошибка",
+                message: message,
+                buttonText: "Принял") { }
+            
+            alertPresenter.show(in: self, model: model)
         }
         
+        // MARK: - Actions
+
+        @IBAction func answerButtonTapped(_ sender: UIButton) {
+            let givenAnswer = sender == yesButton
+            guard let currentQuestion = currentQuestion else { return }
+            showAnswerResult(isCorrect: givenAnswer == currentQuestion.correctAnswer)
+        }
+
+        // MARK: - Private
+
+        private func showAnswerResult(isCorrect: Bool) {
+            yesButton.isEnabled = false
+            noButton.isEnabled = false
+
+            if isCorrect {
+                correctAnswers += 1
+            }
+            imageView.layer.masksToBounds = true
+            imageView.layer.borderWidth = 8
+            imageView.layer.borderColor = isCorrect ? UIColor.ypGreen.cgColor : UIColor.ypRed.cgColor
+            imageView.layer.cornerRadius = 20
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+                self?.showNextQuestionOrResults()
+            }
+        }
+
+    
+    private func show(quiz step: QuizStepViewModel) {
+            imageView.image = step.image
+            textLabel.text = step.question
+            counterLabel.text = step.questionNumber
+        }
+    private func show(quiz result: QuizResultsViewModel) {
+        let model = AlertModel(
+            title: result.title,
+            message: result.text, 
+            buttonText: result.buttonText
+        ) { [weak self] in
+            self?.restartGame()
+        }
+        alertPresenter.show(in: self, model: model)
     }
     
     private func showNextQuestionOrResults() {
-        
-            imageView.layer.borderWidth = 0
-            
-            if currentQuestionIndex == questions.count - 1 {
-                showResultsAlert()
-            } else {
-                
-                currentQuestionIndex += 1
-                let nextQuestion = questions[currentQuestionIndex]
-                let viewModel = convert(model: nextQuestion)
-                show(quiz: viewModel)
-                
-                yesButton.isEnabled = true
-                noButton.isEnabled = true
-            }
+        imageView.layer.borderWidth = 0
+        if currentQuestionIndex == questionsAmount - 1 {
+            statisticService.store(correct: correctAnswers, total: questionsAmount)
+            let text = "Ваш результат: \(correctAnswers)/\(questionsAmount)\n" +
+                "Количество сыгранных квизов: \(statisticService.gamesCount)\n" +
+                "Рекорд: \(statisticService.bestGame.correct)/\(statisticService.bestGame.total) \(statisticService.bestGame.date.dateTimeString)\n" +
+                "Средняя точность: \(String(format: "%.2f", statisticService.totalAccuracy))%"
+            let result = QuizResultsViewModel(
+                title: "Раунд окончен!",
+                text: text,
+                buttonText: "Сыграть ещё раз"
+            )
+            show(quiz: result)
+        } else {
+            currentQuestionIndex += 1
+            questionFactory.requestNextQuestion()
+        }
+    }
+
+        private func convert(model: QuizQuestion) -> QuizStepViewModel {
+            QuizStepViewModel(
+                image: UIImage(named: model.image) ?? UIImage(),
+                question: model.text,
+                questionNumber: "\(currentQuestionIndex + 1)/\(questionsAmount)"
+            )
         }
     
-    @IBAction func answerButtonTapped(_ sender: UIButton) {
-        let givenAnswer = sender == yesButton
-        let currentQuestion = questions[currentQuestionIndex]
-        showAnswerResult(isCorrect: givenAnswer == currentQuestion.correctAnswer)
-    }
-    
-    
-    private func setupButtonsAppearance() {
-        let cornerRadius: CGFloat = 15
-        yesButton.layer.cornerRadius = cornerRadius
-        noButton.layer.cornerRadius = cornerRadius
-        imageView.layer.cornerRadius = cornerRadius
-    }
-    
-    private let questions: [QuizQuestion] = [
-        
-        QuizQuestion(
-            image: "The Godfather",
-            text: "Рейтинг этого фильма больше чем 6?",
-            correctAnswer: true),
-        
-        QuizQuestion(
-            image: "The Dark Knight",
-            text: "Рейтинг этого фильма больше чем 8?",
-            correctAnswer: true),
-        
-        QuizQuestion(
-            image: "Kill Bill",
-            text: "Рейтинг этого фильма меньше чем 3?",
-            correctAnswer: false),
-        
-        QuizQuestion(
-            image: "The Avengers",
-            text: "Рейтинг этого фильма больше чем 7?",
-            correctAnswer: true),
-        
-        QuizQuestion(
-            image: "Deadpool",
-            text: "Рейтинг этого фильма больше чем 5?",
-            correctAnswer: true),
-        
-        QuizQuestion(
-            image: "The Green Knight",
-            text: "Рейтинг этого фильма больше чем 6?",
-            correctAnswer: true),
-        
-        QuizQuestion(
-            image: "Old",
-            text: "Рейтинг этого фильма больше чем 8?",
-            correctAnswer: false),
-        
-        QuizQuestion(
-            image: "The Ice Age Adventures of Buck Wild",
-            text: "Рейтинг этого фильма больше чем 9?",
-            correctAnswer: false),
-        
-        QuizQuestion(
-            image: "Tesla",
-            text: "Рейтинг этого фильма меньше чем 5?",
-            correctAnswer: false),
-        
-        QuizQuestion(
-            image: "Vivarium",
-            text: "Рейтинг этого фильма больше чем 6?",
-            correctAnswer: false)
-    ]
-    
-    private var currentQuestionIndex = 0
-    private var correctAnswers = 0
-    
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        setupButtonsAppearance()
-                let firstQuestion = questions[currentQuestionIndex]
-                let viewModel = convert(model: firstQuestion)
-                show(quiz: viewModel)
-        textLabel.font = UIFont(name: "YSDisplay-Bold", size: 23)
-    }
-    
-    private func convert(model: QuizQuestion) -> QuizStepViewModel {
-        let questionStep = QuizStepViewModel(
-            image: UIImage(named: model.image) ?? UIImage(),
-            question: model.text,
-            questionNumber: "\(currentQuestionIndex + 1)/\(questions.count)")
-        return questionStep
-    }
-    
-    private func show(quiz step: QuizStepViewModel) {
-        imageView.image = step.image
-        textLabel.text = step.question
-        counterLabel.text = step.questionNumber
-    }
-    
-    private func startNewGame() {
-        currentQuestionIndex = 0
-        correctAnswers = 0
-        
-        yesButton.isEnabled = true
-        noButton.isEnabled = true
-        
-        let firstQuestion = questions[currentQuestionIndex]
-        let viewModel = convert(model: firstQuestion)
-        show(quiz: viewModel)
-    }
-    
-    private func showResultsAlert() {
-        let result = QuizResultsViewModel(
-            title: "Раунд окончен!",
-            text: "Ваш результат: \(correctAnswers)/\(questions.count)",
-            buttonText: "Сыграть ещё раз"
-        )
-        let alert = UIAlertController(
-            title: result.title,
-            message: result.text,
-            preferredStyle: .alert
-        )
-        let action = UIAlertAction(title: result.buttonText, style: .default) { _ in
-            self.startNewGame()
+        private func setupButtonsAppearance() {
+            let cornerRadius: CGFloat = 15
+            yesButton.layer.cornerRadius = cornerRadius
+            noButton.layer.cornerRadius = cornerRadius
+            imageView.layer.cornerRadius = cornerRadius
         }
-        alert.addAction(action)
-        self.present(alert, animated: true, completion: nil)
+
+        private func restartGame() {
+            currentQuestionIndex = 0
+            correctAnswers = 0
+            questionFactory.requestNextQuestion()
+        }
     }
-    
-    struct QuizQuestion {
-        let image: String
-        let text: String
-        let correctAnswer: Bool
-    }
-    
-    struct QuizStepViewModel {
-        let image: UIImage
-        let question: String
-        let questionNumber: String
-    }
-    
-    struct QuizResultsViewModel {
-        let title: String
-        let text: String
-        let buttonText: String
-    }
-}
