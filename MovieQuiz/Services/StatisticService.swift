@@ -4,14 +4,16 @@ final class StatisticService {
     
     private var storage: UserDefaults = .standard
     
-    private var totalCorrectAnswers: Int
-    private var totalQuestionsAsked: Int
-    
-    init(totalCorrectAnswers: Int = 0, totalQuestionsAsked: Int = 0) {
-        self.totalCorrectAnswers = totalCorrectAnswers
-        self.totalQuestionsAsked = totalQuestionsAsked
-        loadStatistics()
+    var correct: Int {
+        get { storage.integer(forKey: Keys.totalCorrectAnswers.rawValue) }
+        set { storage.set(newValue, forKey: Keys.totalCorrectAnswers.rawValue) }
     }
+
+    var total: Int {
+        get { storage.integer(forKey: Keys.totalQuestionsAsked.rawValue) }
+        set { storage.set(newValue, forKey: Keys.totalQuestionsAsked.rawValue) }
+    }
+    
     private enum Keys: String {
             case gamesCount
             case bestGameCorrect
@@ -48,25 +50,18 @@ final class StatisticService {
         }
         
         var totalAccuracy: Double {
-            guard totalQuestionsAsked > 0 else { return 0 }
-            return (Double(totalCorrectAnswers) / Double(totalQuestionsAsked)) * 100
+            guard total > 0 else { return 0 }
+            return (Double(correct) / Double(total)) * 100
         }
         
         func store(correct count: Int, total amount: Int) {
-            totalCorrectAnswers += count
-            totalQuestionsAsked += amount
-            storage.set(totalCorrectAnswers, forKey: Keys.totalCorrectAnswers.rawValue)
-            storage.set(totalQuestionsAsked, forKey: Keys.totalQuestionsAsked.rawValue)
+            correct += count
+            total += amount
             
             gamesCount += 1
             let currentGame = GameResult(correct: count, total: amount, date: Date())
             if currentGame.isBetterThan(bestGame) {
                 bestGame = currentGame
             }
-        }
-        
-        private func loadStatistics() {
-            totalCorrectAnswers = storage.integer(forKey: Keys.totalCorrectAnswers.rawValue)
-            totalQuestionsAsked = storage.integer(forKey: Keys.totalQuestionsAsked.rawValue)
         }
     }

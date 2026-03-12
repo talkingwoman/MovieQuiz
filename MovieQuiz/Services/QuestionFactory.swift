@@ -77,4 +77,3 @@ class QuestionFactory: QuestionFactoryProtocol {
            delegate?.didReceiveNextQuestion(question: question)
        }
    }
-//вопросы перемешаны но не повторяются
