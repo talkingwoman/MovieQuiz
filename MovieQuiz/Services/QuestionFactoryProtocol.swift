@@ -1,6 +1,6 @@
 import Foundation
 
 protocol QuestionFactoryProtocol {
-    func setup(delegate: QuestionFactoryDelegate)
+    func loadData()  
     func requestNextQuestion()
 }

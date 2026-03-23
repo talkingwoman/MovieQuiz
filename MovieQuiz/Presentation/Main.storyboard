@@ -54,7 +54,7 @@
                                         <constraints>
                                             <constraint firstAttribute="width" constant="300" id="3W8-00-3Ru"/>
                                         </constraints>
-                                        <fontDescription key="fontDescription" name="HelveticaNeue" family="Helvetica Neue" pointSize="24"/>
+                                        <fontDescription key="fontDescription" name="YSDisplay-Bold" family="YS Display" pointSize="23"/>
                                         <color key="textColor" name="YP White"/>
                                         <nil key="highlightedColor"/>
                                     </label>
@@ -119,16 +119,23 @@
                                     <constraint firstItem="dU4-VJ-Ab2" firstAttribute="leading" secondItem="DbR-wJ-98e" secondAttribute="leading" id="jMa-Fd-MM9"/>
                                 </constraints>
                             </stackView>
+                            <activityIndicatorView opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" style="medium" translatesAutoresizingMaskIntoConstraints="NO" id="kqn-Lq-qiH">
+                                <rect key="frame" x="197" y="438" width="20" height="20"/>
+                            </activityIndicatorView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="vDu-zF-Fre"/>
                         <color key="backgroundColor" name="YP Black"/>
                         <constraints>
                             <constraint firstItem="t6P-FZ-6QG" firstAttribute="centerX" secondItem="vDu-zF-Fre" secondAttribute="centerX" id="7mS-Za-VgV"/>
+                            <constraint firstItem="kqn-Lq-qiH" firstAttribute="centerX" secondItem="5EZ-qb-Rvc" secondAttribute="centerX" id="Kqq-RJ-JAH"/>
                             <constraint firstItem="t6P-FZ-6QG" firstAttribute="bottom" secondItem="vDu-zF-Fre" secondAttribute="bottom" id="SM9-iM-qbO"/>
                             <constraint firstItem="t6P-FZ-6QG" firstAttribute="top" secondItem="vDu-zF-Fre" secondAttribute="top" id="ZWF-TO-u4e"/>
+                            <constraint firstItem="kqn-Lq-qiH" firstAttribute="centerY" secondItem="5EZ-qb-Rvc" secondAttribute="centerY" id="vg3-dn-O0z"/>
                         </constraints>
                     </view>
                     <connections>
+                        <outlet property="activityIndicator" destination="kqn-Lq-qiH" id="oBO-mI-vUS"/>
+                        <outlet property="contentStackView" destination="t6P-FZ-6QG" id="86j-4Z-Ohy"/>
                         <outlet property="counterLabel" destination="riM-yF-Dx9" id="wtd-g6-ngR"/>
                         <outlet property="imageView" destination="dU4-VJ-Ab2" id="t1e-zB-dac"/>
                         <outlet property="noButton" destination="hrb-zd-pG0" id="vv6-7C-EfP"/>
