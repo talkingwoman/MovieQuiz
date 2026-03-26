@@ -1,67 +1,85 @@
 import Foundation
 
-final class StatisticService {
-    
-    private var storage: UserDefaults = .standard
-    
-    var correct: Int {
-        get { storage.integer(forKey: Keys.totalCorrectAnswers.rawValue) }
-        set { storage.set(newValue, forKey: Keys.totalCorrectAnswers.rawValue) }
-    }
+protocol StatisticServiceProtocol {
+    func store(correct count: Int, total amount: Int)
+    var totalAccuracy: Double { get }
+    var gamesCount: Int { get }
+    var bestGame: GameRecord { get }
+}
 
-    var total: Int {
-        get { storage.integer(forKey: Keys.totalQuestionsAsked.rawValue) }
-        set { storage.set(newValue, forKey: Keys.totalQuestionsAsked.rawValue) }
-    }
-    
+final class StatisticServiceImplementation: StatisticServiceProtocol {
     private enum Keys: String {
-            case gamesCount
-            case bestGameCorrect
-            case bestGameTotal
-            case bestGameDate
-            case totalCorrectAnswers
-            case totalQuestionsAsked
+        case correct, total, bestGame, gamesCount
+    }
+    private let userDefaults = UserDefaults.standard
+
+    // MARK: - Public methods
+    func store(correct count: Int, total amount: Int) {
+        self.correct += count
+        self.total += amount
+        self.gamesCount += 1
+
+        let game = GameRecord(correct: count, total: amount, date: Date())
+
+        if game.isBetterThan(bestGame) {
+            bestGame = game
         }
     }
 
-    extension StatisticService: StatisticServiceProtocol {
-        var gamesCount: Int {
-            get {
-                storage.integer(forKey: Keys.gamesCount.rawValue)
-            }
-            set {
-                storage.set(newValue, forKey: Keys.gamesCount.rawValue)
-            }
-        }
-        
-        var bestGame: GameResult {
-            get {
-                let correct = storage.integer(forKey: Keys.bestGameCorrect.rawValue)
-                let total = storage.integer(forKey: Keys.bestGameTotal.rawValue)
-                let date = storage.object(forKey: Keys.bestGameDate.rawValue) as? Date ?? Date()
+    // MARK: - Public properties
+    var totalAccuracy: Double {
+        Double(correct) / Double(total) * 100
+    }
 
-                return GameResult(correct: correct, total: total, date: date)
-            }
-            set {
-                storage.set(newValue.correct, forKey: Keys.bestGameCorrect.rawValue)
-                storage.set(newValue.total, forKey: Keys.bestGameTotal.rawValue)
-                storage.set(newValue.date, forKey: Keys.bestGameDate.rawValue)
-            }
+    private(set) var gamesCount: Int {
+        get {
+            userDefaults.integer(forKey: Keys.gamesCount.rawValue)
         }
-        
-        var totalAccuracy: Double {
-            guard total > 0 else { return 0 }
-            return (Double(correct) / Double(total)) * 100
-        }
-        
-        func store(correct count: Int, total amount: Int) {
-            correct += count
-            total += amount
-            
-            gamesCount += 1
-            let currentGame = GameResult(correct: count, total: amount, date: Date())
-            if currentGame.isBetterThan(bestGame) {
-                bestGame = currentGame
-            }
+
+        set {
+            userDefaults.set(newValue, forKey: Keys.gamesCount.rawValue)
         }
     }
+
+
+    private(set) var bestGame: GameRecord {
+        get {
+            guard let data = userDefaults.data(forKey: Keys.bestGame.rawValue),
+            let record = try? JSONDecoder().decode(GameRecord.self, from: data) else {
+                return .init(correct: 0, total: 0, date: Date())
+            }
+
+            return record
+        }
+
+        set {
+            guard let data = try? JSONEncoder().encode(newValue) else {
+                print("Невозможно сохранить результат")
+                return
+            }
+
+            userDefaults.set(data, forKey: Keys.bestGame.rawValue)
+        }
+    }
+
+    // MARK: - Private properties
+    private var correct: Int {
+        get {
+            userDefaults.integer(forKey: Keys.correct.rawValue)
+        }
+
+        set {
+            userDefaults.set(newValue, forKey: Keys.correct.rawValue)
+        }
+    }
+
+    private var total: Int {
+        get {
+            userDefaults.integer(forKey: Keys.total.rawValue)
+        }
+
+        set {
+            userDefaults.set(newValue, forKey: Keys.total.rawValue)
+        }
+    }
+}
