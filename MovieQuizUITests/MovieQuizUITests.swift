@@ -14,54 +14,57 @@ final class MovieQuizUITests: XCTestCase {
         app = nil
     }
 
-    func testYesButton() {
-        sleep(3)
+    private func waitForIndex(_ index: Int, timeout: TimeInterval = 30) {
         let indexLabel = app.staticTexts["Index"]
-        let firstLabel = indexLabel.label
+        let predicate = NSPredicate(format: "label == '\(index)/10'")
+        let expectation = XCTNSPredicateExpectation(predicate: predicate, object: indexLabel)
+        wait(for: [expectation], timeout: timeout)
+    }
+
+    func testYesButton() {
+        waitForIndex(1)
+        let indexLabel = app.staticTexts["Index"]
 
         app.buttons["Yes"].tap()
-        sleep(3)
+        waitForIndex(2)
 
-        XCTAssertNotEqual(indexLabel.label, firstLabel)
+        XCTAssertEqual(indexLabel.label, "2/10")
     }
 
     func testNoButton() {
-        sleep(3)
+        waitForIndex(1)
         let indexLabel = app.staticTexts["Index"]
-        let firstLabel = indexLabel.label
 
         app.buttons["No"].tap()
-        sleep(3)
+        waitForIndex(2)
 
-        XCTAssertNotEqual(indexLabel.label, firstLabel)
+        XCTAssertEqual(indexLabel.label, "2/10")
     }
 
     func testGameFinish() {
-        sleep(2)
-        for _ in 1...10 {
+        for i in 1...10 {
+            waitForIndex(i)
             app.buttons["Yes"].tap()
-            sleep(2)
         }
 
         let alert = app.alerts["Этот раунд окончен!"]
-        XCTAssertTrue(alert.exists)
+        XCTAssertTrue(alert.waitForExistence(timeout: 5))
         XCTAssertEqual(alert.label, "Этот раунд окончен!")
         XCTAssertTrue(alert.buttons["Сыграть ещё раз"].exists)
     }
 
     func testAlertDismiss() {
-        sleep(2)
-        for _ in 1...10 {
+        for i in 1...10 {
+            waitForIndex(i)
             app.buttons["Yes"].tap()
-            sleep(2)
         }
 
         let alert = app.alerts["Этот раунд окончен!"]
+        XCTAssertTrue(alert.waitForExistence(timeout: 5))
         alert.buttons["Сыграть ещё раз"].tap()
-        sleep(2)
 
-        let indexLabel = app.staticTexts["Index"]
+        waitForIndex(1)
         XCTAssertFalse(alert.exists)
-        XCTAssertEqual(indexLabel.label, "1/10")
+        XCTAssertEqual(app.staticTexts["Index"].label, "1/10")
     }
 }

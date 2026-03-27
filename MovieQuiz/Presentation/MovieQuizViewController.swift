@@ -43,9 +43,11 @@ final class MovieQuizViewController: UIViewController, MovieQuizViewControllerPr
     
     func show(quiz step: QuizStepViewModel) {
         imageView.layer.borderColor = UIColor.clear.cgColor
-        imageView.image = UIImage(data: step.image) ?? UIImage()
+        imageView.image = UIImage(data: step.imageData) ?? UIImage()
         textLabel.text = step.question
         counterLabel.text = step.questionNumber
+        noButton.isEnabled = true
+        yesButton.isEnabled = true
     }
     
     func show(quiz result: QuizResultsViewModel) {
@@ -71,6 +73,8 @@ final class MovieQuizViewController: UIViewController, MovieQuizViewControllerPr
         imageView.layer.masksToBounds = true
         imageView.layer.borderWidth = 8
         imageView.layer.borderColor = isCorrectAnswer ? UIColor.ypGreen.cgColor : UIColor.ypRed.cgColor
+        noButton.isEnabled = false
+        yesButton.isEnabled = false
     }
     
     func showLoadingIndicator() {
@@ -81,8 +85,6 @@ final class MovieQuizViewController: UIViewController, MovieQuizViewControllerPr
     }
     
     func hideLoadingIndicator() {
-        noButton.isEnabled = true
-        yesButton.isEnabled = true
         activityIndicator.isHidden = true
     }
     
